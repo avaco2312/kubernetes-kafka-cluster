@@ -1,0 +1,7 @@
+POST http://localhost/topic/ddd
+
+POST http://localhost/message/ddd
+
+Ahora de nuevo
+
+GET http://localhost/ddd

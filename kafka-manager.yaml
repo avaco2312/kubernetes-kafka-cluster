@@ -1,0 +1,43 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: kafka-manager
+  namespace: kafka
+spec:
+  selector:
+    app: kafka-manager
+  type: NodePort
+  ports:
+    - port: 9000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-manager
+  namespace: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-manager
+  template:
+    metadata:
+      labels:
+        app: kafka-manager
+    spec:
+      containers:
+      - name: kafka-manager
+        image: hlebalbau/kafka-manager:stable
+        resources:
+            limits:
+              cpu: 200m
+              memory: 500Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi         
+        ports:
+        - containerPort: 9000
+        env:
+        - name: ZK_HOSTS
+          value: zookeeper:2181
+

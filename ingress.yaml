@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-nginx
+  namespace: kafka
+spec:
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: go-consumer
+            port:
+              number: 8072
+      - pathType: Prefix
+        path: "/topic"
+        backend:
+          service:
+            name: go-producer
+            port:
+              number: 8070   
+      - pathType: Prefix
+        path: "/message"
+        backend:
+          service:
+            name: go-producer
+            port:
+              number: 8070               
