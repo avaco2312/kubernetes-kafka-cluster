@@ -15,12 +15,7 @@ import (
 	kafka "github.com/segmentio/kafka-go"
 )
 
-type topic struct {
-	buffer []string
-	sync.Mutex
-}
-
-var topics map[string]*topic
+var topics map[string]chan string
 var topicsmux sync.Mutex
 var kafkaURL string
 
@@ -29,10 +24,10 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 		vars := mux.Vars(req)
 		topico := vars["topic"]
 		topicsmux.Lock()
-		ctopico, ok := topics[topico]
-		topicsmux.Unlock()
+		_, ok := topics[topico]
 		if !ok {
-			ctopico = &topic{buffer: []string{}}
+			topics[topico] = make(chan string, 5)
+			topicsmux.Unlock()
 			err := createTopic(topico)
 			if err != nil {
 				log.Println("Error creando topico")
@@ -42,27 +37,22 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 				defer kafkaReader.Close()
 				for {
 					m, err := kafkaReader.ReadMessage(context.Background())
-					ctopico.Lock()
 					if err != nil {
-						ctopico.buffer = append(ctopico.buffer, "Error leyendo mensaje "+err.Error()+" "+topico)
+						topics[topico] <- "Error leyendo mensaje "+err.Error()+" "+topico
 					} else {
-						ctopico.buffer = append(ctopico.buffer, fmt.Sprintf("offset: %v key: %s value: %s", m.Offset, string(m.Key), string(m.Value)))
+						topics[topico] <- fmt.Sprintf("offset: %v key: %s value: %s", m.Offset, string(m.Key), string(m.Value))
 					}
-					topicsmux.Lock()
-					topics[topico] = ctopico
-					topicsmux.Unlock()
-					ctopico.Unlock()
+
 				}
 			}()
+		} else {
+			topicsmux.Unlock()
 		}
-		ctopico.Lock()
-		defer ctopico.Unlock()
-		if len(ctopico.buffer) == 0 {
+		if len(topics[topico]) == 0 {
 			http.Error(wrt, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
-		wrt.Write([]byte(ctopico.buffer[0]))
-		ctopico.buffer = ctopico.buffer[1:]
+		wrt.Write([]byte(<-topics[topico]))
 	})
 }
 
@@ -103,7 +93,7 @@ func createTopic(topic string) error {
 
 func main() {
 	kafkaURL = os.Getenv("KAFKAURL")
-	topics = make(map[string]*topic)
+	topics = make(map[string]chan string)
 	r := mux.NewRouter()
 	r.HandleFunc("/{topic}", consumerHandler()).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8072", r))

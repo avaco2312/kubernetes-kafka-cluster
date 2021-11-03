@@ -1,7 +1,7 @@
 POST http://localhost/topic/ddd
 
-POST http://localhost/message/ddd
+POST http://localhost:8070/message/ddd
 
 Ahora de nuevo
 
-GET http://localhost/ddd
+GET http://localhost:8072/ddd
