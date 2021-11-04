@@ -32,10 +32,18 @@ spec:
       labels:
         app: zookeeper
     spec:
+      volumes:
+      - name: vdata
+        hostPath:
+          path: /vdata      
       containers:
       - name: zookeeper
         image: bitnami/zookeeper
         imagePullPolicy: Never
+        volumeMounts:
+        - name: vdata
+          mountPath: /bitnami/zookeeper
+          subPathExpr: $(POD_NAME)           
         ports:
         - containerPort: 2181
         resources:
@@ -47,7 +55,12 @@ spec:
               memory: 200Mi 
         env:  
         - name: ALLOW_ANONYMOUS_LOGIN
-          value: "yes"     
+          value: "yes" 
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name            
 ---
 apiVersion: v1
 kind: Service
@@ -79,10 +92,18 @@ spec:
       labels:
         app: kafka
     spec:
+      volumes:
+      - name: vdata
+        hostPath:
+          path: /vdata        
       containers:
       - name: kafka
         image: bitnami/kafka
         imagePullPolicy: Never
+        volumeMounts:
+        - name: vdata
+          mountPath: /bitnami/kafka
+          subPathExpr: $(POD_NAME)            
         ports:
         - containerPort: 9092
         resources:
@@ -97,6 +118,11 @@ spec:
           value: "yes"
         - name: KAFKA_CFG_ZOOKEEPER_CONNECT
           value: zookeeper:2181
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name            
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -133,7 +159,7 @@ spec:
             memory: 100Mi
         env:
         - name: KAFKAURL
-          value: kafka:9092            
+          value: kafka:9092    
         ports:
         - containerPort:  8070
           name:  http

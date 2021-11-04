@@ -5,3 +5,8 @@ POST http://localhost/message/ddd
 Ahora de nuevo
 
 GET http://localhost/ddd
+
+curl -X POST http://localhost/message/ddd
+-d Veamos
+
+curl -X GET http://localhost/ddd
