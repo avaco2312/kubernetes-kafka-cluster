@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	kafka "github.com/segmentio/kafka-go"
@@ -26,7 +27,7 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 		topicsmux.Lock()
 		_, ok := topics[topico]
 		if !ok {
-			topics[topico] = make(chan string, 5)
+			topics[topico] = make(chan string)
 			topicsmux.Unlock()
 			err := createTopic(topico)
 			if err != nil {
@@ -38,7 +39,7 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 				for {
 					m, err := kafkaReader.ReadMessage(context.Background())
 					if err != nil {
-						topics[topico] <- "Error leyendo mensaje "+err.Error()+" "+topico
+						topics[topico] <- "Error leyendo mensaje " + err.Error() + " " + topico
 					} else {
 						topics[topico] <- fmt.Sprintf("offset: %v key: %s value: %s", m.Offset, string(m.Key), string(m.Value))
 					}
@@ -48,11 +49,12 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 		} else {
 			topicsmux.Unlock()
 		}
-		if len(topics[topico]) == 0 {
+		select {
+		case msg := <-topics[topico]:
+			wrt.Write([]byte(msg))
+		case <-time.After(time.Second * 1):
 			http.Error(wrt, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-			return
 		}
-		wrt.Write([]byte(<-topics[topico]))
 	})
 }
 
@@ -61,6 +63,7 @@ func getKafkaReader(kafkaURL, topic string) *kafka.Reader {
 	return kafka.NewReader(kafka.ReaderConfig{
 		Brokers: brokers,
 		Topic:   topic,
+		GroupID: "consumer1",
 	})
 }
 

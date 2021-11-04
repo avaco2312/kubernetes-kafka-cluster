@@ -1,10 +1,10 @@
-POST http://localhost/topic/ddd
+POST http://localhost:8070/topic/aaa
 
-POST http://localhost/message/ddd
+POST http://localhost:8070/message/aaa
 
-Ahora de nuevo
+Ahora de nuevo 3
 
-GET http://localhost/ddd
+GET http://localhost:8072/aaa
 
 curl -X POST http://localhost/message/ddd
 -d Veamos
