@@ -10,3 +10,10 @@ curl -X POST http://localhost/message/ddd
 -d Veamos
 
 curl -X GET http://localhost/ddd
+
+curl -X POST http://localhost/topic/primertopico
+
+curl -X POST http://localhost/message/primertopico
+-d "Primer mensaje enviado"
+
+curl -X GET http://localhost/primertopico
