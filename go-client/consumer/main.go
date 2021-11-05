@@ -31,7 +31,8 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 			topicsmux.Unlock()
 			err := createTopic(topico)
 			if err != nil {
-				log.Println("Error creando topico")
+				http.Error(wrt, "Error creando tópico", http.StatusInternalServerError)
+				return
 			}
 			go func() {
 				kafkaReader := getKafkaReader(kafkaURL, topico)
