@@ -8,7 +8,7 @@ spec:
   - http:
       paths:
       - pathType: Prefix
-        path: "/"
+        path: "/consumer"
         backend:
           service:
             name: go-consumer
@@ -22,7 +22,7 @@ spec:
             port:
               number: 8070   
       - pathType: Prefix
-        path: "/message"
+        path: "/producer"
         backend:
           service:
             name: go-producer

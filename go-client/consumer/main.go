@@ -49,6 +49,7 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 					}
 				}
 			}()
+			time.Sleep(time.Second * 8)
 		} else {
 			topicsmux.Unlock()
 		}
@@ -56,7 +57,7 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 		case m := <-topics[topico].canal:
 			wrt.Write([]byte(fmt.Sprintf("offset: %v key: %s value: %s", m.Offset, string(m.Key), string(m.Value))))
 			topics[topico].reader.CommitMessages(context.Background(),m)
-		case <-time.After(time.Second * 10):
+		case <-time.After(time.Second * 1):
 			http.Error(wrt, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		}
 	})
@@ -102,7 +103,7 @@ func main() {
 	kafkaURL = os.Getenv("KAFKAURL")
 	topics = make(map[string]readertopic)
 	r := mux.NewRouter()
-	r.HandleFunc("/{topic}", consumerHandler()).Methods("GET")
+	r.HandleFunc("/consumer/{topic}", consumerHandler()).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8072", r))
 
 }

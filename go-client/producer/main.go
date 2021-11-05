@@ -85,7 +85,7 @@ func main() {
 	kafkaWriter := getKafkaWriter(kafkaURL)
 	defer kafkaWriter.Close()
 	r := mux.NewRouter()
-	r.HandleFunc("/message/{topic}", producerHandler(kafkaWriter)).Methods("POST")
+	r.HandleFunc("/producer/{topic}", producerHandler(kafkaWriter)).Methods("POST")
 	r.HandleFunc("/topic/{topic}", topicHandler()).Methods("POST")
 	log.Fatal(http.ListenAndServe(":8070", r))
 }
