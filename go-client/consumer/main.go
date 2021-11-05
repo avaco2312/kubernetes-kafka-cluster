@@ -16,7 +16,12 @@ import (
 	kafka "github.com/segmentio/kafka-go"
 )
 
-var topics map[string]chan string
+type readertopic struct {
+	canal chan kafka.Message
+	reader *kafka.Reader
+}
+
+var topics map[string]readertopic
 var topicsmux sync.Mutex
 var kafkaURL string
 
@@ -27,7 +32,7 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 		topicsmux.Lock()
 		_, ok := topics[topico]
 		if !ok {
-			topics[topico] = make(chan string)
+			topics[topico] = readertopic{canal: make(chan kafka.Message), reader: getKafkaReader(kafkaURL, topico)}
 			topicsmux.Unlock()
 			err := createTopic(topico)
 			if err != nil {
@@ -35,25 +40,23 @@ func consumerHandler() func(http.ResponseWriter, *http.Request) {
 				return
 			}
 			go func() {
-				kafkaReader := getKafkaReader(kafkaURL, topico)
-				defer kafkaReader.Close()
 				for {
-					m, err := kafkaReader.ReadMessage(context.Background())
+					m, err := topics[topico].reader.FetchMessage(context.Background())
 					if err != nil {
-						topics[topico] <- "Error leyendo mensaje " + err.Error() + " " + topico
+						// Ignorar errores
 					} else {
-						topics[topico] <- fmt.Sprintf("offset: %v key: %s value: %s", m.Offset, string(m.Key), string(m.Value))
+						topics[topico].canal <- m
 					}
-
 				}
 			}()
 		} else {
 			topicsmux.Unlock()
 		}
 		select {
-		case msg := <-topics[topico]:
-			wrt.Write([]byte(msg))
-		case <-time.After(time.Second * 1):
+		case m := <-topics[topico].canal:
+			wrt.Write([]byte(fmt.Sprintf("offset: %v key: %s value: %s", m.Offset, string(m.Key), string(m.Value))))
+			topics[topico].reader.CommitMessages(context.Background(),m)
+		case <-time.After(time.Second * 10):
 			http.Error(wrt, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		}
 	})
@@ -97,7 +100,7 @@ func createTopic(topic string) error {
 
 func main() {
 	kafkaURL = os.Getenv("KAFKAURL")
-	topics = make(map[string]chan string)
+	topics = make(map[string]readertopic)
 	r := mux.NewRouter()
 	r.HandleFunc("/{topic}", consumerHandler()).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8072", r))

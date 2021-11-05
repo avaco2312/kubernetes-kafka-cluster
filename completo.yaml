@@ -118,6 +118,10 @@ spec:
           value: "yes"
         - name: KAFKA_CFG_ZOOKEEPER_CONNECT
           value: zookeeper:2181
+        - name: KAFKA_CFG_ENABLE_AUTO_COMMIT
+          value: "false"
+        - name: KAFKA_CFG_AUTO_OFFSET_RESET
+          value: "latest"
         - name: POD_NAME
           valueFrom:
             fieldRef:
